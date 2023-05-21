@@ -6,11 +6,11 @@ def get_currencies(date):
 
 
 def get_currency(date,currency = "USD"):
-    currencies = get_currencies(date)
-    if currencies:
-        for c in currencies[0]['currencies']:
-            if c['code'] == currency:
-                c["success"] = True
-                return c
+    req = requests.get(f"https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies={currency}&date={date}")
+    return req.json()
 
-    return { "success" : False }
+from pprint import pprint
+from datetime import datetime
+
+
+pprint(get_currency(datetime(2023,4,16), "EUR"))
