@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
     RS_USERNAME,
     RS_PASSWORD,
     BUSINESS_ACTIVITY,
-) = range(10)
+    SUBMIT_INFO,
+) = range(11)
 
 user_info = {}
 
@@ -150,11 +151,50 @@ async def rs_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return BUSINESS_ACTIVITY
 
 
-async def final(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def submit_info(update: Update, contet: ContextTypes.DEFAULT_TYPE):
     user_info["business_activity"] = update.message.text
+    reply_keyboard = [["Yes", "No"]]
+    await update.message.reply_text(
+        "Is this correct information? \n\n"
+        f"""
+            Name: {user_info['name']}   
+            Surname: {user_info['surname']}   
+            Email: {user_info['email']}   
+            Phone Number: {user_info['phone_num']}   
+            Package Plan: {user_info['package_plan']}   
+            Tax Number: {user_info['tax_num']}   
+            Address: {user_info['address']}   
+            RS Username: {user_info['rs_username']}   
+            RS Password: {user_info['rs_password']}   
+            Business Activity: {user_info['business_activity']}   
+        """,
+        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+    )
+
+    return SUBMIT_INFO
+
+
+async def final(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print(update.message.text)
+    if update.message.text == "Yes":
+        await update.message.reply_text(
+            "Great!\n\n"
+            f"{user_info['name']}, your registration has been successfully completed.\n"
+            "When the time comes for filing the declaration and tax, I will write to you in this chat. Paying the tax and filing the declaration will take no more than 3 minutes. See you later 🤗\n\n"
+            "(/cancel to cancel conversation)"
+        )
+    else:
+        await update.message.reply_text(
+            "If your info isn't correct please /cancel and /start again"
+        )
+
+    return ConversationHandler.END
+
+
+async def final_success(update: Update):
     await update.message.reply_text(
         "Great!\n\n"
-        "Name, your registration has been successfully completed.\n"
+        f"{user_info['name']}, your registration has been successfully completed.\n"
         "When the time comes for filing the declaration and tax, I will write to you in this chat. Paying the tax and filing the declaration will take no more than 3 minutes. See you later 🤗\n\n"
         "(/cancel to cancel conversation)"
     )
@@ -167,7 +207,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(
-        "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
+        "Bye! I hope we can talk again some day. \n\n (/start to start conversation)",
+        reply_markup=ReplyKeyboardRemove(),
     )
 
     return ConversationHandler.END
@@ -197,7 +238,10 @@ def main() -> None:
             ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, address)],
             RS_USERNAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, rs_username)],
             RS_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, rs_password)],
-            BUSINESS_ACTIVITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, final)],
+            BUSINESS_ACTIVITY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, submit_info)
+            ],
+            SUBMIT_INFO: [MessageHandler(filters.TEXT & ~filters.COMMAND, final)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
