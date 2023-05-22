@@ -181,25 +181,14 @@ async def final(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Great!\n\n"
             f"{user_info['name']}, your registration has been successfully completed.\n"
             "When the time comes for filing the declaration and tax, I will write to you in this chat. Paying the tax and filing the declaration will take no more than 3 minutes. See you later 🤗\n\n"
-            "(/cancel to cancel conversation)"
         )
     else:
         await update.message.reply_text(
-            "If your info isn't correct please /cancel and /start again"
+            "If your info isn't correct please /start again"
         )
 
     return ConversationHandler.END
 
-
-async def final_success(update: Update):
-    await update.message.reply_text(
-        "Great!\n\n"
-        f"{user_info['name']}, your registration has been successfully completed.\n"
-        "When the time comes for filing the declaration and tax, I will write to you in this chat. Paying the tax and filing the declaration will take no more than 3 minutes. See you later 🤗\n\n"
-        "(/cancel to cancel conversation)"
-    )
-
-    return ConversationHandler.END
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
