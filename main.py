@@ -12,6 +12,7 @@ from telegram.ext import (
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+from currency_convert import get_currency
 
 
 load_dotenv()
@@ -236,17 +237,16 @@ async def transaction_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     date_string = update.message.text
     try:
         date_object = datetime.strptime(date_string, "%Y-%m-%d")
-        transaction_info["date"] = date_object
+        transaction_info["date"] = date_string 
     except ValueError:
         await update.message.reply_text("You wrote date in wrong format, start again (/transaction)")
         return ConversationHandler.END
     
     keyboard = [
         [
-            InlineKeyboardButton("$", callback_data='USD'),
+            InlineKeyboardButton("USD", callback_data='USD'),
             InlineKeyboardButton("EUR", callback_data='EUR'),
             InlineKeyboardButton("GBP", callback_data='GBP'),
-            InlineKeyboardButton("GEL", callback_data='GEL'),
         ]
     ]
 
@@ -269,6 +269,18 @@ async def transaction_currency(update: Update, context: ContextTypes.DEFAULT_TYP
 async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     amount = update.message.text
     transaction_info['amount'] = float(amount)
+    currency_course = get_currency(transaction_info["date"], transaction_info["currency"])
+    transaction_info["currency_course"] = currency_course[0]['currencies'][0]['rateFormated']
+    transaction_info["converted_to_gel"] = float(transaction_info['amount']) * float(transaction_info["currency_course"])
+
+
+    await update.message.reply_text(
+        f"Date: {transaction_info['date']}\n"
+        f"Currency: {transaction_info['currency']}\n"
+        f"Currency course to Lari: {transaction_info['currency_course']}\n"
+        f"Amount of {transaction_info['currency']}: {transaction_info['amount']}\n"
+        f"Converted to Lari: {transaction_info['converted_to_gel']}\n"
+    )
 
     return ConversationHandler.END
 
