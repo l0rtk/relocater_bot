@@ -239,6 +239,15 @@ async def transaction_start(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return CALENDAR_DATE 
 
 
+async def add_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "Please write a date of transaction (format should be YYYY-MM-DD)"
+    )
+
+    return CALENDAR_DATE 
+
+
+
 async def transaction_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     date_string = update.message.text
     try:
@@ -306,15 +315,13 @@ async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def transaction_final(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
-    print(query)
     reply = query.data 
 
+    global transaction_info
+    
     if reply == 'No':
-        global transaction_info
         all_transactions.append(transaction_info)
         for tr in all_transactions:
-            from pprint import pprint
-            pprint(tr)
             await update.effective_message.reply_text(
                 f"Date: {tr['date']}\n"
                 f"Currency: {tr['currency']}\n"
@@ -325,9 +332,14 @@ async def transaction_final(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         transaction_info = {}
 
         return ConversationHandler.END
+
+    elif reply == 'Yes':
+        all_transactions.append(transaction_info)
+        transaction_info = {}
+        await update.effective_message.reply_text("click to add more transaction: /add_transaction")
+        return ConversationHandler.END 
     else:
         pass
-
 
 
 
@@ -367,7 +379,7 @@ def main() -> None:
 
 
     transaction_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("transaction", transaction_start)],
+        entry_points=[CommandHandler("transaction", transaction_start),CommandHandler("add_transaction", add_transaction)],
         states={
             CALENDAR_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, transaction_date)],
             CURRENCY: [CallbackQueryHandler(transaction_currency)],
