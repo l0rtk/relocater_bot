@@ -229,6 +229,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def transaction_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    global transaction_info 
+    global all_transactions
+
+    transaction_info, all_transactions = {}, []
+
     await update.message.reply_text(
         "It's time to pay taxes and file returns. This will take three minutes.\n"
         "Fill in the information on the income of the reporting (previous) month, from the 1st day including the last.\n"
@@ -300,15 +305,7 @@ async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text("Do you have any other transactions?", reply_markup=reply_markup)
 
     return FINAL
-    """
-    await update.message.reply_text(
-        f"Date: {transaction_info['date']}\n"
-        f"Currency: {transaction_info['currency']}\n"
-        f"Currency course to Lari: {transaction_info['currency_course']}\n"
-        f"Amount of {transaction_info['currency']}: {transaction_info['amount']}\n"
-        f"Converted to Lari: {transaction_info['converted_to_gel']}\n"
-    )
-    """
+
 
 
 
@@ -320,8 +317,10 @@ async def transaction_final(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     global transaction_info
     
     if reply == 'No':
+        total = 0
         all_transactions.append(transaction_info)
         for tr in all_transactions:
+            total += float(tr['converted_to_gel'])
             await update.effective_message.reply_text(
                 f"Date: {tr['date']}\n"
                 f"Currency: {tr['currency']}\n"
@@ -329,6 +328,10 @@ async def transaction_final(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 f"Amount of {tr['currency']}: {tr['amount']}\n"
                 f"Converted to Lari: {tr['converted_to_gel']}\n"
             )
+
+        await update.effective_message.reply_text(
+            f"Total is: {str(total)} Lari"
+        )
         transaction_info = {}
 
         return ConversationHandler.END
