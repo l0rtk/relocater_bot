@@ -5,6 +5,8 @@ WORKDIR /app
 RUN apt-get update -y && apt-get install g++ gcc libxslt-dev zlib1g-dev libffi6 libffi-dev libxslt1-dev libxml2-dev python-dev -y
 
 
+ENV TOKEN=6254008124:AAGUoph-ItsFgrv0pIbKglLEGh9E7Odokns
+
 COPY main.py /app/main.py
 
 COPY requirements.txt requirements.txt

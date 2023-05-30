@@ -12,8 +12,7 @@ from telegram.ext import (
 import os
 from dotenv import load_dotenv
 from datetime import datetime
-from currency_convert import get_currency
-
+import requests
 
 load_dotenv()
 
@@ -43,13 +42,20 @@ logger = logging.getLogger(__name__)
 (
     CALENDAR_DATE,
     CURRENCY,
-    AMOUNT
-) = range(3)
+    AMOUNT,
+    FINAL
+) = range(4)
 
 
 
 user_info = {}
 transaction_info = {}
+all_transactions = []
+
+def get_currency(date,currency = "USD"):
+    req = requests.get(f"https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?currencies={currency}&date={date}")
+    return req.json()
+
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -273,7 +279,19 @@ async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE)
     transaction_info["currency_course"] = currency_course[0]['currencies'][0]['rateFormated']
     transaction_info["converted_to_gel"] = float(transaction_info['amount']) * float(transaction_info["currency_course"])
 
+    keyboard = [
+        [
+            InlineKeyboardButton("Yes", callback_data='Yes'),
+            InlineKeyboardButton("No", callback_data='No'),
+        ]
+    ]
 
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text("Do you have any other transactions?", reply_markup=reply_markup)
+
+    return FINAL
+    """
     await update.message.reply_text(
         f"Date: {transaction_info['date']}\n"
         f"Currency: {transaction_info['currency']}\n"
@@ -281,8 +299,37 @@ async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE)
         f"Amount of {transaction_info['currency']}: {transaction_info['amount']}\n"
         f"Converted to Lari: {transaction_info['converted_to_gel']}\n"
     )
+    """
 
-    return ConversationHandler.END
+
+
+async def transaction_final(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    print(query)
+    reply = query.data 
+
+    if reply == 'No':
+        global transaction_info
+        all_transactions.append(transaction_info)
+        for tr in all_transactions:
+            from pprint import pprint
+            pprint(tr)
+            await update.effective_message.reply_text(
+                f"Date: {tr['date']}\n"
+                f"Currency: {tr['currency']}\n"
+                f"Currency course to Lari: {tr['currency_course']}\n"
+                f"Amount of {tr['currency']}: {tr['amount']}\n"
+                f"Converted to Lari: {tr['converted_to_gel']}\n"
+            )
+        transaction_info = {}
+
+        return ConversationHandler.END
+    else:
+        pass
+
+
+
 
 
 
@@ -324,7 +371,8 @@ def main() -> None:
         states={
             CALENDAR_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, transaction_date)],
             CURRENCY: [CallbackQueryHandler(transaction_currency)],
-            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, transaction_amount)]
+            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, transaction_amount)],
+            FINAL: [CallbackQueryHandler(transaction_final)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
