@@ -221,7 +221,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(
-        "Bye! I hope we can talk again some day. \n\n (/start to start conversation)",
+        "Bye! I hope we can talk again some day. \n\n (/start to start conversation, /transaction to add transaction)",
         reply_markup=ReplyKeyboardRemove(),
     )
 
