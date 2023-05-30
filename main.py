@@ -1,13 +1,22 @@
 import logging
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
+    CallbackQueryHandler,
     MessageHandler,
     filters,
 )
+import os
+from dotenv import load_dotenv
+from datetime import datetime
+
+
+load_dotenv()
+
+
 
 # Enable logging
 logging.basicConfig(
@@ -29,7 +38,17 @@ logger = logging.getLogger(__name__)
     SUBMIT_INFO,
 ) = range(11)
 
+
+(
+    CALENDAR_DATE,
+    CURRENCY,
+    AMOUNT
+) = range(3)
+
+
+
 user_info = {}
+transaction_info = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -175,7 +194,6 @@ async def submit_info(update: Update, contet: ContextTypes.DEFAULT_TYPE):
 
 
 async def final(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(update.message.text)
     if update.message.text == "Yes":
         await update.message.reply_text(
             "Great!\n\n"
@@ -203,12 +221,65 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+async def transaction_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "It's time to pay taxes and file returns. This will take three minutes.\n"
+        "Fill in the information on the income of the reporting (previous) month, from the 1st day including the last.\n"
+        "Please note that you should not include personal transfers, personal deposits or other personal transactions in your monthly income.\n"
+        "Please write a date of transaction (format should be YYYY-MM-DD)"
+    )
+
+    return CALENDAR_DATE 
+
+
+async def transaction_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    date_string = update.message.text
+    try:
+        date_object = datetime.strptime(date_string, "%Y-%m-%d")
+        transaction_info["date"] = date_object
+    except ValueError:
+        await update.message.reply_text("You wrote date in wrong format, start again (/transaction)")
+        return ConversationHandler.END
+    
+    keyboard = [
+        [
+            InlineKeyboardButton("$", callback_data='USD'),
+            InlineKeyboardButton("EUR", callback_data='EUR'),
+            InlineKeyboardButton("GBP", callback_data='GBP'),
+            InlineKeyboardButton("GEL", callback_data='GEL'),
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+ 
+    await update.message.reply_text("Now choose currency you get your income with\n", reply_markup=reply_markup)
+
+    return CURRENCY 
+
+
+async def transaction_currency(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    transaction_info['currency'] = query.data
+    await query.edit_message_text(f"Enter amount of {transaction_info['currency']} you get")
+ 
+    return AMOUNT 
+
+
+async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    amount = update.message.text
+    transaction_info['amount'] = float(amount)
+
+    return ConversationHandler.END
+
+
+
 def main() -> None:
     """Run the bot."""
     # Create the Application and pass it your bot's token.
     application = (
         Application.builder()
-        .token("6218070919:AAHstt8R7Up10t5S2RtkWXWJEnJ2g889C8o")
+        .token(os.environ.get('TOKEN'))
         .build()
     )
 
@@ -235,7 +306,19 @@ def main() -> None:
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
+
+    transaction_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("transaction", transaction_start)],
+        states={
+            CALENDAR_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, transaction_date)],
+            CURRENCY: [CallbackQueryHandler(transaction_currency)],
+            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, transaction_amount)]
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+
     application.add_handler(conv_handler)
+    application.add_handler(transaction_conv_handler)
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling()
