@@ -238,7 +238,7 @@ async def transaction_start(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         "It's time to pay taxes and file returns. This will take three minutes.\n"
         "Fill in the information on the income of the reporting (previous) month, from the 1st day including the last.\n"
         "Please note that you should not include personal transfers, personal deposits or other personal transactions in your monthly income.\n"
-        "Please write a date of transaction (format should be YYYY-MM-DD)"
+        "Please write a date of transaction (format should be dd.mm.yyyy)"
     )
 
     return CALENDAR_DATE 
@@ -246,7 +246,7 @@ async def transaction_start(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def add_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(
-        "Please write a date of transaction (format should be YYYY-MM-DD)"
+        "Please write a date of transaction (format should be dd.mm.yyyy)"
     )
 
     return CALENDAR_DATE 
@@ -256,7 +256,7 @@ async def add_transaction(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def transaction_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     date_string = update.message.text
     try:
-        date_object = datetime.strptime(date_string, "%Y-%m-%d")
+        date_object = datetime.strptime(date_string, "%d-%m-%Y")
         transaction_info["date"] = date_string 
     except ValueError:
         await update.message.reply_text("You wrote date in wrong format, start again (/transaction)")
