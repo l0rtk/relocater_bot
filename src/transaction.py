@@ -67,6 +67,7 @@ async def transaction_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             InlineKeyboardButton("USD", callback_data='USD'),
             InlineKeyboardButton("EUR", callback_data='EUR'),
             InlineKeyboardButton("GBP", callback_data='GBP'),
+            InlineKeyboardButton("GEL", callback_data='GEL'),
         ]
     ]
 
@@ -89,9 +90,13 @@ async def transaction_currency(update: Update, context: ContextTypes.DEFAULT_TYP
 async def transaction_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     amount = update.message.text
     transaction_info['amount'] = float(amount)
-    currency_course = get_currency(transaction_info["date"], transaction_info["currency"])
-    transaction_info["currency_course"] = currency_course[0]['currencies'][0]['rateFormated']
-    transaction_info["converted_to_gel"] = float(transaction_info['amount']) * float(transaction_info["currency_course"])
+    if transaction_info['currency'] != 'GEL':
+        date = transaction_info['date'].split('.')
+        formatted_date = f"{date[2]}-{date[1]}-{date[0]}"
+
+        currency_course = get_currency(formatted_date, transaction_info["currency"])
+        transaction_info["currency_course"] = currency_course[0]['currencies'][0]['rateFormated']
+        transaction_info["converted_to_gel"] = float(transaction_info['amount']) * float(transaction_info["currency_course"])
 
     keyboard = [
         [
@@ -120,14 +125,22 @@ async def transaction_final(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         total = 0
         all_transactions.append(transaction_info)
         for tr in all_transactions:
-            total += float(tr['converted_to_gel'])
-            await update.effective_message.reply_text(
-                f"Date: {tr['date']}\n"
-                f"Currency: {tr['currency']}\n"
-                f"Currency course to Lari: {tr['currency_course']}\n"
-                f"Amount of {tr['currency']}: {tr['amount']}\n"
-                f"Converted to Lari: {tr['converted_to_gel']}\n"
-            )
+            if tr['currency'] == 'GEL':
+                total += float(tr['amount'])
+                await update.effective_message.reply_text(
+                    f"Date: {tr['date']}\n"
+                    f"Currency: {tr['currency']}\n"
+                    f"Amount of {tr['currency']}: {tr['amount']}\n"
+                )
+            else:
+                total += float(tr['converted_to_gel'])
+                await update.effective_message.reply_text(
+                    f"Date: {tr['date']}\n"
+                    f"Currency: {tr['currency']}\n"
+                    f"Currency course to Lari: {tr['currency_course']}\n"
+                    f"Amount of {tr['currency']}: {tr['amount']}\n"
+                    f"Converted to Lari: {tr['converted_to_gel']}\n"
+                )
 
         await update.effective_message.reply_text(
             f"Total is: {str(total)} Lari"
