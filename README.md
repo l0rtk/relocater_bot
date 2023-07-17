@@ -6,3 +6,4 @@ Milestone 1.0
   -  Authentication via Telegram
   -  Creating profile for user (storing their data in the database)
   -  Monthly alerts for declaration and tax payment
+  -  RS API doesn't have automatic declaration and tax payment service, for now we still have to do it manually
